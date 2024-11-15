@@ -1,11 +1,19 @@
 
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import javax.swing.ImageIcon;
 import javax.swing.JOptionPane;
 import org.json.JSONObject;
+import java.io.FileWriter;
+import java.io.IOException;
+import javax.swing.JFileChooser;
+import javax.swing.JOptionPane;
+import javax.swing.table.DefaultTableModel;
+
 
 /*
  * To change this license header, choose License Headers in Project Properties.
@@ -17,7 +25,96 @@ import org.json.JSONObject;
  * @author User
  */
 public class FrameCekCuacaSederhana extends javax.swing.JFrame {
+    
+    
+public void loadTableDataFromCSV() {
+    // Membuka JFileChooser untuk memilih file CSV
+    JFileChooser fileChooser = new JFileChooser();
+    fileChooser.setDialogTitle("Pilih file CSV");
+    int result = fileChooser.showOpenDialog(this);
 
+    if (result == JFileChooser.APPROVE_OPTION) {
+        String filePath = fileChooser.getSelectedFile().getAbsolutePath();
+        
+        try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
+            // Mendapatkan model tabel
+            DefaultTableModel model = (DefaultTableModel) tableRiwayat.getModel();
+            model.setRowCount(0); // Mengosongkan tabel sebelum memuat data baru
+
+            String line;
+            boolean isFirstLine = true; // Untuk melewati header CSV
+            while ((line = reader.readLine()) != null) {
+                // Mengabaikan header
+                if (isFirstLine) {
+                    isFirstLine = false;
+                    continue;
+                }
+
+                // Memisahkan data berdasarkan koma
+                String[] data = line.split(",");
+                
+                // Menambahkan baris data ke model tabel
+                model.addRow(data);
+            }
+
+            JOptionPane.showMessageDialog(this, "Data berhasil dimuat dari file " + filePath, "Sukses", JOptionPane.INFORMATION_MESSAGE);
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(this, "Terjadi kesalahan saat memuat file CSV: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            e.printStackTrace();
+        }
+    } else {
+        JOptionPane.showMessageDialog(this, "Tidak ada file yang dipilih.", "Informasi", JOptionPane.INFORMATION_MESSAGE);
+    }
+}
+
+public void saveTableDataToCSV() {
+    // Membuka JFileChooser untuk memilih lokasi dan nama file
+    JFileChooser fileChooser = new JFileChooser();
+    fileChooser.setDialogTitle("Pilih Lokasi untuk Menyimpan File");
+    fileChooser.setSelectedFile(new File("data_cuaca.csv")); // Set default file name
+
+    // Menyaring file yang akan ditampilkan hanya file CSV
+    fileChooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("CSV Files", "csv"));
+
+    int userSelection = fileChooser.showSaveDialog(this);
+    
+    // Jika pengguna memilih tombol "Save"
+    if (userSelection == JFileChooser.APPROVE_OPTION) {
+        File fileToSave = fileChooser.getSelectedFile();
+
+        // Pastikan file yang dipilih memiliki ekstensi ".csv"
+        String fileName = fileToSave.getAbsolutePath();
+        if (!fileName.endsWith(".csv")) {
+            fileName += ".csv"; // Menambahkan ekstensi .csv jika tidak ada
+        }
+        
+        try (FileWriter writer = new FileWriter(fileName)) {
+            // Mendapatkan model tabel
+            DefaultTableModel model = (DefaultTableModel) tableRiwayat.getModel();
+            
+            // Menulis header kolom ke file CSV
+            writer.append("Kota,Cuaca,Detail Cuaca,Suhu\n");
+            
+            // Menulis setiap baris data tabel ke file CSV
+            for (int i = 0; i < model.getRowCount(); i++) {
+                String city = (String) model.getValueAt(i, 0);
+                String weather = (String) model.getValueAt(i, 1);
+                String description = (String) model.getValueAt(i, 2);
+                String temperature = (String) model.getValueAt(i, 3);
+                
+                // Menulis data baris ke file CSV
+                writer.append(city + "," + weather + "," + description + "," + temperature + "\n");
+            }
+            
+            // Menampilkan pesan sukses
+            JOptionPane.showMessageDialog(this, "Data berhasil disimpan ke file " + fileName, "Sukses", JOptionPane.INFORMATION_MESSAGE);
+        } catch (IOException e) {
+            // Menampilkan pesan error jika terjadi kesalahan
+            JOptionPane.showMessageDialog(this, "Terjadi kesalahan saat menyimpan file CSV: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            e.printStackTrace();
+        }
+    }
+}    
 public void fetchWeatherDataFromTextField() {
     String city = inputKota.getText().trim(); // Ambil kota dari TextField
     if (city.isEmpty()) {
@@ -26,7 +123,7 @@ public void fetchWeatherDataFromTextField() {
     }
 
     String apiKey = "07df57ec686790b155da3f0b59a7c39a";
-    String urlString = "http://api.openweathermap.org/data/2.5/weather?q=" + city + "&units=metric&appid=" + apiKey;
+    String urlString = "http://api.openweathermap.org/data/2.5/weather?q=" + city + "&units=metric&lang=id&appid=" + apiKey;
 
     try {
         // Membuat koneksi ke URL API
@@ -53,6 +150,9 @@ public void fetchWeatherDataFromTextField() {
             String description = jsonResponse.getJSONArray("weather").getJSONObject(0).getString("description");
             double temperature = jsonResponse.getJSONObject("main").getDouble("temp");
             String iconCode = jsonResponse.getJSONArray("weather").getJSONObject(0).getString("icon");
+
+            // Pemetaan cuaca dari bahasa Inggris ke bahasa Indonesia
+            weather = mapWeatherToIndonesian(weather);
 
             // Menampilkan hasil ke label
             labelCuaca.setText("Cuaca: " + weather);
@@ -89,8 +189,31 @@ public void fetchWeatherDataFromTextField() {
         JOptionPane.showMessageDialog(this, "Terjadi kesalahan: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         e.printStackTrace();
     }
+}// Pemetaan cuaca dari bahasa Inggris ke bahasa Indonesia
+private String mapWeatherToIndonesian(String weather) {
+    switch (weather.toLowerCase()) {
+        case "clear":
+            return "Cerah";
+        case "clouds":
+            return "Berawan";
+        case "rain":
+            return "Hujan";
+        case "snow":
+            return "Salju";
+        case "thunderstorm":
+            return "Badai Petir";
+        case "drizzle":
+            return "Gerimis";
+        case "fog":
+            return "Kabut";
+        case "mist":
+            return "Kabut";
+        case "haze":
+            return "Berawan Mendung";
+        default:
+            return weather; // Kembalikan nama cuaca jika tidak ada pemetaan
+    }
 }
-
 
     /**
      * Creates new form FrameCekCuacaSederhana
@@ -242,6 +365,11 @@ public void fetchWeatherDataFromTextField() {
         jPanel2.add(jScrollPane1, gridBagConstraints);
 
         btnSimpan.setText("Simpan");
+        btnSimpan.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnSimpanActionPerformed(evt);
+            }
+        });
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 2;
         gridBagConstraints.gridy = 5;
@@ -249,6 +377,11 @@ public void fetchWeatherDataFromTextField() {
         jPanel2.add(btnSimpan, gridBagConstraints);
 
         btnMuat.setText("Memuat");
+        btnMuat.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnMuatActionPerformed(evt);
+            }
+        });
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 3;
         gridBagConstraints.gridy = 5;
@@ -272,6 +405,14 @@ public void fetchWeatherDataFromTextField() {
         inputKota.setText(cbbFavorit.getSelectedItem().toString());
         fetchWeatherDataFromTextField();            // TODO add your handling code here:
     }//GEN-LAST:event_cbbFavoritItemStateChanged
+
+    private void btnSimpanActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnSimpanActionPerformed
+    saveTableDataToCSV();        // TODO add your handling code here:
+    }//GEN-LAST:event_btnSimpanActionPerformed
+
+    private void btnMuatActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnMuatActionPerformed
+    loadTableDataFromCSV();        // TODO add your handling code here:
+    }//GEN-LAST:event_btnMuatActionPerformed
 
     /**
      * @param args the command line arguments
