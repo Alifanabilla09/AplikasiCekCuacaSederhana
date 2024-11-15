@@ -1,14 +1,96 @@
+
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import javax.swing.ImageIcon;
+import javax.swing.JOptionPane;
+import org.json.JSONObject;
+
 /*
  * To change this license header, choose License Headers in Project Properties.
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-
 /**
  *
  * @author User
  */
 public class FrameCekCuacaSederhana extends javax.swing.JFrame {
+
+public void fetchWeatherDataFromTextField() {
+    String city = inputKota.getText().trim(); // Ambil kota dari TextField
+    if (city.isEmpty()) {
+        JOptionPane.showMessageDialog(this, "Masukkan nama kota terlebih dahulu!", "Error", JOptionPane.ERROR_MESSAGE);
+        return;
+    }
+
+    String apiKey = "07df57ec686790b155da3f0b59a7c39a";
+    String urlString = "http://api.openweathermap.org/data/2.5/weather?q=" + city + "&units=metric&appid=" + apiKey;
+
+    try {
+        // Membuat koneksi ke URL API
+        URL url = new URL(urlString);
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setRequestMethod("GET");
+        conn.connect();
+
+        // Mengecek respons HTTP
+        int responseCode = conn.getResponseCode();
+        if (responseCode == 200) {
+            // Membaca data dari API
+            BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+            StringBuilder response = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                response.append(line);
+            }
+            reader.close();
+
+            // Parsing JSON response
+            JSONObject jsonResponse = new JSONObject(response.toString());
+            String weather = jsonResponse.getJSONArray("weather").getJSONObject(0).getString("main");
+            String description = jsonResponse.getJSONArray("weather").getJSONObject(0).getString("description");
+            double temperature = jsonResponse.getJSONObject("main").getDouble("temp");
+            String iconCode = jsonResponse.getJSONArray("weather").getJSONObject(0).getString("icon");
+
+            // Menampilkan hasil ke label
+            labelCuaca.setText("Cuaca: " + weather);
+            labelDetail.setText("Detail: " + description);
+            labelSuhu.setText("Suhu: " + temperature + " °C");
+
+            // Mengambil dan menampilkan ikon cuaca
+            String iconUrl = "http://openweathermap.org/img/wn/" + iconCode + "@2x.png";
+            labelGambar.setIcon(new ImageIcon(new URL(iconUrl)));
+
+            // Menghilangkan teks placeholder setelah ikon muncul
+            labelGambar.setText("");
+
+            // Menambahkan data ke tabel
+            javax.swing.table.DefaultTableModel model = (javax.swing.table.DefaultTableModel) tableRiwayat.getModel();
+            model.addRow(new Object[]{city, weather, description, temperature + " °C"});
+
+            // Menambahkan kota ke ComboBox jika belum ada
+            boolean alreadyInComboBox = false;
+            for (int i = 0; i < cbbFavorit.getItemCount(); i++) {
+                if (cbbFavorit.getItemAt(i).equalsIgnoreCase(city)) {
+                    alreadyInComboBox = true;
+                    break;
+                }
+            }
+            if (!alreadyInComboBox) {
+                cbbFavorit.addItem(city);
+            }
+
+        } else {
+            JOptionPane.showMessageDialog(this, "Kota tidak ditemukan! Pastikan nama kota benar.", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    } catch (Exception e) {
+        JOptionPane.showMessageDialog(this, "Terjadi kesalahan: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        e.printStackTrace();
+    }
+}
+
 
     /**
      * Creates new form FrameCekCuacaSederhana
@@ -25,22 +107,171 @@ public class FrameCekCuacaSederhana extends javax.swing.JFrame {
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
+        java.awt.GridBagConstraints gridBagConstraints;
+
+        jPanel1 = new javax.swing.JPanel();
+        jTextField1 = new javax.swing.JTextField();
+        jPanel2 = new javax.swing.JPanel();
+        jLabel1 = new javax.swing.JLabel();
+        jLabel2 = new javax.swing.JLabel();
+        labelGambar = new javax.swing.JLabel();
+        labelCuaca = new javax.swing.JLabel();
+        labelDetail = new javax.swing.JLabel();
+        labelSuhu = new javax.swing.JLabel();
+        btnCek = new javax.swing.JButton();
+        inputKota = new javax.swing.JTextField();
+        cbbFavorit = new javax.swing.JComboBox<>();
+        jScrollPane1 = new javax.swing.JScrollPane();
+        tableRiwayat = new javax.swing.JTable();
+        btnSimpan = new javax.swing.JButton();
+        btnMuat = new javax.swing.JButton();
+
+        javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
+        jPanel1.setLayout(jPanel1Layout);
+        jPanel1Layout.setHorizontalGroup(
+            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 100, Short.MAX_VALUE)
+        );
+        jPanel1Layout.setVerticalGroup(
+            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 100, Short.MAX_VALUE)
+        );
+
+        jTextField1.setText("jTextField1");
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
-        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
-        getContentPane().setLayout(layout);
-        layout.setHorizontalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 400, Short.MAX_VALUE)
-        );
-        layout.setVerticalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 300, Short.MAX_VALUE)
-        );
+        jPanel2.setLayout(new java.awt.GridBagLayout());
+
+        jLabel1.setText("Pilih Kota Anda");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.insets = new java.awt.Insets(6, 10, 6, 10);
+        jPanel2.add(jLabel1, gridBagConstraints);
+
+        jLabel2.setText("Kota Favorit");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 1;
+        gridBagConstraints.insets = new java.awt.Insets(6, 10, 6, 10);
+        jPanel2.add(jLabel2, gridBagConstraints);
+
+        labelGambar.setText("Gambar");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 2;
+        gridBagConstraints.insets = new java.awt.Insets(6, 10, 6, 10);
+        jPanel2.add(labelGambar, gridBagConstraints);
+
+        labelCuaca.setText("Cuaca:");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 1;
+        gridBagConstraints.gridy = 2;
+        gridBagConstraints.insets = new java.awt.Insets(6, 10, 6, 10);
+        jPanel2.add(labelCuaca, gridBagConstraints);
+
+        labelDetail.setText("Detail:");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 1;
+        gridBagConstraints.gridy = 3;
+        gridBagConstraints.insets = new java.awt.Insets(6, 10, 6, 10);
+        jPanel2.add(labelDetail, gridBagConstraints);
+
+        labelSuhu.setText("Suhu:");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 1;
+        gridBagConstraints.gridy = 4;
+        gridBagConstraints.insets = new java.awt.Insets(6, 10, 6, 10);
+        jPanel2.add(labelSuhu, gridBagConstraints);
+
+        btnCek.setText("Cek Cuaca");
+        btnCek.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnCekActionPerformed(evt);
+            }
+        });
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 5;
+        gridBagConstraints.gridwidth = 2;
+        gridBagConstraints.insets = new java.awt.Insets(6, 10, 6, 10);
+        jPanel2.add(btnCek, gridBagConstraints);
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridwidth = 3;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.ipadx = 2;
+        gridBagConstraints.insets = new java.awt.Insets(6, 10, 6, 10);
+        jPanel2.add(inputKota, gridBagConstraints);
+
+        cbbFavorit.setSelectedIndex(-1);
+        cbbFavorit.addItemListener(new java.awt.event.ItemListener() {
+            public void itemStateChanged(java.awt.event.ItemEvent evt) {
+                cbbFavoritItemStateChanged(evt);
+            }
+        });
+        cbbFavorit.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                cbbFavoritActionPerformed(evt);
+            }
+        });
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 1;
+        gridBagConstraints.gridy = 1;
+        gridBagConstraints.gridwidth = 3;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.insets = new java.awt.Insets(6, 10, 6, 10);
+        jPanel2.add(cbbFavorit, gridBagConstraints);
+
+        jScrollPane1.setPreferredSize(new java.awt.Dimension(452, 200));
+
+        tableRiwayat.setModel(new javax.swing.table.DefaultTableModel(
+            new Object [][] {
+
+            },
+            new String [] {
+                "Kota", "Cuaca", "Detail Cuaca", "Suhu"
+            }
+        ));
+        tableRiwayat.setPreferredSize(new java.awt.Dimension(100, 100));
+        jScrollPane1.setViewportView(tableRiwayat);
+
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 6;
+        gridBagConstraints.gridwidth = 4;
+        gridBagConstraints.insets = new java.awt.Insets(6, 10, 6, 10);
+        jPanel2.add(jScrollPane1, gridBagConstraints);
+
+        btnSimpan.setText("Simpan");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 2;
+        gridBagConstraints.gridy = 5;
+        gridBagConstraints.insets = new java.awt.Insets(6, 10, 6, 10);
+        jPanel2.add(btnSimpan, gridBagConstraints);
+
+        btnMuat.setText("Memuat");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 3;
+        gridBagConstraints.gridy = 5;
+        gridBagConstraints.insets = new java.awt.Insets(6, 10, 6, 10);
+        jPanel2.add(btnMuat, gridBagConstraints);
+
+        getContentPane().add(jPanel2, java.awt.BorderLayout.CENTER);
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
+
+    private void cbbFavoritActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cbbFavoritActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_cbbFavoritActionPerformed
+
+    private void btnCekActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnCekActionPerformed
+    fetchWeatherDataFromTextField();            // TODO add your handling code here:
+    }//GEN-LAST:event_btnCekActionPerformed
+
+    private void cbbFavoritItemStateChanged(java.awt.event.ItemEvent evt) {//GEN-FIRST:event_cbbFavoritItemStateChanged
+        inputKota.setText(cbbFavorit.getSelectedItem().toString());
+        fetchWeatherDataFromTextField();            // TODO add your handling code here:
+    }//GEN-LAST:event_cbbFavoritItemStateChanged
 
     /**
      * @param args the command line arguments
@@ -78,5 +309,21 @@ public class FrameCekCuacaSederhana extends javax.swing.JFrame {
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JButton btnCek;
+    private javax.swing.JButton btnMuat;
+    private javax.swing.JButton btnSimpan;
+    private javax.swing.JComboBox<String> cbbFavorit;
+    private javax.swing.JTextField inputKota;
+    private javax.swing.JLabel jLabel1;
+    private javax.swing.JLabel jLabel2;
+    private javax.swing.JPanel jPanel1;
+    private javax.swing.JPanel jPanel2;
+    private javax.swing.JScrollPane jScrollPane1;
+    private javax.swing.JTextField jTextField1;
+    private javax.swing.JLabel labelCuaca;
+    private javax.swing.JLabel labelDetail;
+    private javax.swing.JLabel labelGambar;
+    private javax.swing.JLabel labelSuhu;
+    private javax.swing.JTable tableRiwayat;
     // End of variables declaration//GEN-END:variables
 }
